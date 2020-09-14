@@ -1,0 +1,3 @@
+include ':adplugdb'
+include ':app'
+rootProject.name = "AdPlugDB"
