@@ -6,9 +6,9 @@ public interface IAdPlugDb {
     int SORT_DESCENDING = 2;
 
     void getStatus();
-    void index(String root);
+    void index(String root, boolean quick);
     void delete();
-    void list(String path, int order);
+    void list(String path, int order, boolean quick, boolean hide);
     void add(String song, long length);
     void remove(String song);
     void getCount();

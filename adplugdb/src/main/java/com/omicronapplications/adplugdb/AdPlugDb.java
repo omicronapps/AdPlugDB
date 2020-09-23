@@ -13,6 +13,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -37,6 +38,13 @@ public class AdPlugDb extends SQLiteOpenHelper {
     private static final String KEY_DIR = "dir";
     private static final String KEY_PLAYLIST = "playlist";
     private static final int DB_VERSION = 1;
+    private static final String[] ALLPLAYERS = {
+            "hsc", "sng", "imf", "wlf", "adlib", "a2m", "sng", "amd", "bam", "cmf",
+            "d00", "dfm", "hsp", "ksm", "mad", "mus", "ims", "mdi", "mid", "sci",
+            "laa", "mkj", "cff", "dmo", "s3m", "dtm", "sng", "mtk", "rad", "rac",
+            "raw", "sat", "sa2", "xad", "bmf", "xad", "xad", "xad", "xad", "xad",
+            "lds", "m", "rol", "xsm", "dro", "dro", "msc", "rix", "adl", "jbm",
+            "got", "cmf", "vgm", "vgz", "sop", "hsq", "sqx", "sdb", "agd", "ha2"};
     private final ReentrantLock mLock = new ReentrantLock();
     private IAdPlugDbCallback mCallback;
     private IAdPlugDbCallback.dbStatus mStatus;
@@ -95,9 +103,9 @@ public class AdPlugDb extends SQLiteOpenHelper {
         }
     }
 
-    void index(File root, boolean force) {
+    void index(File root, boolean quick) {
         boolean found = hasPath(root);
-        if (found && !force) {
+        if (found && quick) {
             Log.i(TAG, "index: path already exists in database" + root);
             updateStatus(INITIALIZED);
             return;
@@ -151,7 +159,14 @@ public class AdPlugDb extends SQLiteOpenHelper {
         }
     }
 
-    void list(File path, int order) {
+    void list(File path, int order, boolean quick, boolean hide) {
+        boolean found = hasPath(path);
+        mHide = hide;
+        if (found && quick) {
+            onList();
+            return;
+        }
+
         mPath = path.getAbsolutePath();
         mOrder = order;
 
@@ -211,7 +226,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
             } else {
                 // Unable to get get song information from AdPlug
                 File f = new File(name);
-                song = new AdPlugFile(f.getParent(), f.getName(), null, null, null, null, 0, -1, -1, false, false);
+                song = new AdPlugFile(f.getParent(), f.getName(), null, null, null, null, 0, -1, -1, false, isPlaylist(f));
                 addToDB(song);
             }
         }
@@ -221,7 +236,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
     void remove(String name) {
         // Remove file from DB
         File f = new File(name);
-        AdPlugFile song = new AdPlugFile(f.getParent(), f.getName(), null, null, null, null, 0, -1, -1, false, false);
+        AdPlugFile song = new AdPlugFile(f.getParent(), f.getName(), null, null, null, null, 0, -1, -1, false, isPlaylist(f));
         deleteFromDB(song);
     }
 
@@ -284,9 +299,11 @@ public class AdPlugDb extends SQLiteOpenHelper {
                 java.util.Collections.sort(dbFiles, Collections.reverseOrder());
             }
             if (mHide) {
-                for (AdPlugFile file : dbFiles) {
-                    if (!file.dir && !file.valid && !file.playlist) {
-                        dbFiles.remove(file);
+                Iterator<AdPlugFile> it = dbFiles.iterator();
+                while (it.hasNext()) {
+                    AdPlugFile file = it.next();
+                    if (file != null && !file.valid && !file.dir && !file.playlist) {
+                        it.remove();
                     }
                 }
             }
@@ -463,6 +480,10 @@ public class AdPlugDb extends SQLiteOpenHelper {
             Log.e(TAG, "delete: SQLException: " + e.getMessage());
         }
         return (rows >= 1);
+    }
+
+    private static boolean isPlaylist(File file) {
+        return (file != null) && !file.isDirectory() && file.getName().endsWith(".m3u");
     }
 
     private static boolean contains(File[] array, AdPlugFile value) {

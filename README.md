@@ -293,6 +293,7 @@ Copyright (C) 2020 [Fredrik Claesson](https://github.com/omicronapps)
 ## Release History
 
 - 1.0.0 Initial release
+- 1.1.0 Support for quick listings and for hiding invalid files from list
 
 ## License
 

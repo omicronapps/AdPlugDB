@@ -26,6 +26,8 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
     private static final int ADPLUGDB_GETCOUNT = 8;
     private static final int ADPLUGDB_ONSONGINFO = 9;
     private static final String BUNDLE_PATH = "path";
+    private static final String BUNDLE_QUICK = "quick";
+    private static final String BUNDLE_HIDE = "hide";
     private static final String BUNDLE_SONG = "song";
     private static final String BUNDLE_TYPE = "type";
     private static final String BUNDLE_TITLE = "title";
@@ -48,6 +50,7 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
     // DbIndexRunner/DbIndexRunner variables
     private AdPlugDb mDB;
     private File mRoot;
+    private boolean mQuick;
 
     public final class AdPlugDbBinder extends Binder {
         AdPlugDbService getService() {
@@ -59,7 +62,7 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
         @Override
         public void run() {
             if (mDB != null) {
-                mDB.index(mRoot, true);
+                mDB.index(mRoot, mQuick);
             }
         }
     }
@@ -82,6 +85,7 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
                     Bundle data = msg.getData();
                     String root = data.getString(BUNDLE_PATH);
                     mRoot = getFile(root);
+                    mQuick = data.getBoolean(BUNDLE_QUICK);
                     mIndexHandler.post(mIndexRunner);
                     break;
                 case ADPLUGDB_DELETE:
@@ -91,8 +95,10 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
                     data = msg.getData();
                     String path = data.getString(BUNDLE_PATH);
                     int order = data.getInt(BUNDLE_ORDER);
+                    boolean quick = data.getBoolean(BUNDLE_QUICK);
+                    boolean hide = data.getBoolean(BUNDLE_HIDE);
                     File f = getFile(path);
-                    mDB.list(f, order);
+                    mDB.list(f, order, quick, hide);
                     break;
                 case ADPLUGDB_ADD:
                     data = msg.getData();
@@ -229,9 +235,10 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
     }
 
     @Override
-    public void index(String root) {
+    public void index(String root, boolean quick) {
         Bundle data = new Bundle();
         data.putString(BUNDLE_PATH, root);
+        data.putBoolean(BUNDLE_QUICK, quick);
         sendMessageToAdPlugDb(ADPLUGDB_INDEX, data);
     }
 
@@ -241,10 +248,12 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
     }
 
     @Override
-    public void list(String path, int order) {
+    public void list(String path, int order, boolean quick, boolean hide) {
         Bundle data = new Bundle();
         data.putString(BUNDLE_PATH, path);
         data.putInt(BUNDLE_ORDER, order);
+        data.putBoolean(BUNDLE_QUICK, quick);
+        data.putBoolean(BUNDLE_HIDE, hide);
         sendMessageToAdPlugDb(ADPLUGDB_LIST, data);
     }
 
