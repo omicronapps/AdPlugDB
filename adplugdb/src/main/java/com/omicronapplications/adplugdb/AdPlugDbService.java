@@ -38,6 +38,7 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
     private static final String BUNDLE_SUBSONGS = "subsongs";
     private static final String BUNDLE_VALID = "valid";
     private static final String BUNDLE_PLAYLIST = "playlist";
+    private static final String BUNDLE_SORTBY = "sortby";
     private static final String BUNDLE_ORDER = "order";
     private AdPlugDbBinder mBinder;
     private HandlerThread mThread;
@@ -94,11 +95,12 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
                 case ADPLUGDB_LIST:
                     data = msg.getData();
                     String path = data.getString(BUNDLE_PATH);
+                    int sortby = data.getInt(BUNDLE_SORTBY);
                     int order = data.getInt(BUNDLE_ORDER);
                     boolean quick = data.getBoolean(BUNDLE_QUICK);
                     boolean hide = data.getBoolean(BUNDLE_HIDE);
                     File f = getFile(path);
-                    mDB.list(f, order, quick, hide);
+                    mDB.list(f, sortby, order, quick, hide);
                     break;
                 case ADPLUGDB_ADD:
                     data = msg.getData();
@@ -248,9 +250,10 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
     }
 
     @Override
-    public void list(String path, int order, boolean quick, boolean hide) {
+    public void list(String path, int sortby, int order, boolean quick, boolean hide) {
         Bundle data = new Bundle();
         data.putString(BUNDLE_PATH, path);
+        data.putInt(BUNDLE_SORTBY, sortby);
         data.putInt(BUNDLE_ORDER, order);
         data.putBoolean(BUNDLE_QUICK, quick);
         data.putBoolean(BUNDLE_HIDE, hide);

@@ -234,21 +234,21 @@ public class AdPlugDbTest {
         await();
 
         File[] files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORT_NONE, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
         mLatch = new CountDownLatch(1);
         await();
         compare(files);
 
         cacheDir = new File(getCacheDir(), "d00");
         files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORT_NONE, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
         mLatch = new CountDownLatch(1);
         await();
         compare(files);
 
         cacheDir = new File(getCacheDir(), "edlib");
         files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORT_NONE, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
         mLatch = new CountDownLatch(1);
         await();
         compare(files);
@@ -258,21 +258,21 @@ public class AdPlugDbTest {
     public void list() {
         File cacheDir = getCacheDir();
         File[] files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORT_NONE, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
         mLatch = new CountDownLatch(1);
         await();
         limitedCompare(files);
 
         cacheDir = new File(getCacheDir(), "d00");
         files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORT_NONE, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
         mLatch = new CountDownLatch(1);
         await();
         limitedCompare(files);
 
         cacheDir = new File(getCacheDir(), "edlib");
         files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORT_NONE, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
         mLatch = new CountDownLatch(1);
         await();
         limitedCompare(files);
@@ -320,7 +320,7 @@ public class AdPlugDbTest {
         cacheDir = new File(getCacheDir(), "d00");
         File[] files = cacheDir.listFiles();
         assertEquals(1, files.length);
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORT_NONE, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
         mLatch = new CountDownLatch(1);
         await();
         compare(files);
@@ -328,7 +328,7 @@ public class AdPlugDbTest {
         cacheDir = new File(getCacheDir(), "edlib");
         files = cacheDir.listFiles();
         assertEquals(1, files.length);
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORT_NONE, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
         mLatch = new CountDownLatch(1);
         await();
         compare(files);
@@ -341,7 +341,7 @@ public class AdPlugDbTest {
         cacheDir = new File(getCacheDir(), "d00");
         files = cacheDir.listFiles();
         assertEquals(2, files.length);
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORT_NONE, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
         mLatch = new CountDownLatch(1);
         await();
         limitedCompare(files);
@@ -349,7 +349,7 @@ public class AdPlugDbTest {
         cacheDir = new File(getCacheDir(), "edlib");
         files = cacheDir.listFiles();
         assertEquals(2, files.length);
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORT_NONE, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
         mLatch = new CountDownLatch(1);
         await();
         limitedCompare(files);

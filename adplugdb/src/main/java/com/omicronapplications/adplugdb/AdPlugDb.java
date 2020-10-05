@@ -51,6 +51,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
     private String mPath;
     private boolean mOnList;
     private boolean mHide;
+    private int mSortBy;
     private int mOrder;
     private List<String> mListSongs;
     private List<String> mIndexSongs;
@@ -62,7 +63,8 @@ public class AdPlugDb extends SQLiteOpenHelper {
         mPath = null;
         mOnList = false;
         mHide = false;
-        mOrder = IAdPlugDb.SORT_NONE;
+        mSortBy = IAdPlugDb.SORTBY_NONE;
+        mOrder = IAdPlugDb.ORDER_ASCENDING;
         mListSongs = new ArrayList<>();
         mIndexSongs = new ArrayList<>();
     }
@@ -159,7 +161,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
         }
     }
 
-    void list(File path, int order, boolean quick, boolean hide) {
+    void list(File path, int sortby, int order, boolean quick, boolean hide) {
         boolean found = hasPath(path);
         mHide = hide;
         if (found && quick) {
@@ -168,6 +170,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
         }
 
         mPath = path.getAbsolutePath();
+        mSortBy = sortby;
         mOrder = order;
 
         try {
@@ -292,11 +295,8 @@ public class AdPlugDb extends SQLiteOpenHelper {
     private void onList() {
         if (mCallback != null) {
             List<AdPlugFile> dbFiles = queryDB(KEY_PATH, mPath);
-            if (mOrder == IAdPlugDb.SORT_ASCENDING || mOrder == IAdPlugDb.SORT_DESCENDING) {
-                java.util.Collections.sort(dbFiles, new IgnoreCaseComparator());
-            }
-            if (mOrder == IAdPlugDb.SORT_DESCENDING) {
-                java.util.Collections.sort(dbFiles, Collections.reverseOrder());
+            if (mSortBy != IAdPlugDb.SORTBY_NONE) {
+                java.util.Collections.sort(dbFiles, new AdPlugComparator(mSortBy, mOrder));
             }
             if (mHide) {
                 Iterator<AdPlugFile> it = dbFiles.iterator();
@@ -311,12 +311,174 @@ public class AdPlugDb extends SQLiteOpenHelper {
         }
     }
 
-    private static class IgnoreCaseComparator implements Comparator<AdPlugFile> {
+    private static class AdPlugComparator implements Comparator<AdPlugFile> {
+        int mSortBy;
+        boolean mReverse;
+
+        public AdPlugComparator(int sortby, int order) {
+            mSortBy = sortby;
+            mReverse = (order == IAdPlugDb.ORDER_DESCENDING);
+        }
+
+        private int fileCompare(AdPlugFile o1, AdPlugFile o2) {
+            String s1 = "";
+            if (o1.name != null && !o1.name.isEmpty()) {
+                s1 = o1.name.toLowerCase();
+            }
+
+            String s2 = "";
+            if (o2.name != null && !o2.name.isEmpty()) {
+                s2 = o2.name.toLowerCase();
+            }
+
+            if (mReverse) {
+                return s2.compareTo(s1);
+            } else {
+                return s1.compareTo(s2);
+            }
+        }
+
+        private int titleCompare(AdPlugFile o1, AdPlugFile o2) {
+            String s1 = "";
+            if (o1.title != null && !o1.title.isEmpty()) {
+                s1 = o1.title.toLowerCase();
+            } else if (o1.name != null && !o1.name.isEmpty()) {
+                s1 = o1.name.toLowerCase();
+            }
+            if (!s1.isEmpty() && s1.charAt(0) == '\"') {
+                s1 = s1.substring(1);
+            }
+            s1 = s1.trim();
+
+            String s2 = "";
+            if (o2.title != null && !o2.title.isEmpty()) {
+                s2 = o2.title.toLowerCase();
+            } else if (o2.name != null && !o2.name.isEmpty()) {
+                s2 = o2.name.toLowerCase();
+            }
+            if (!s2.isEmpty() && s2.charAt(0) == '\"') {
+                s2 = s2.substring(1);
+            }
+            s2 = s2.trim();
+
+            if (mReverse) {
+                return s2.compareTo(s1);
+            } else {
+                return s1.compareTo(s2);
+            }
+        }
+
+        private int authorCompare(AdPlugFile o1, AdPlugFile o2) {
+            String s1 = "";
+            if (o1.author != null && !o1.author.isEmpty()) {
+                s1 = o1.author.toLowerCase();
+            } else if (o1.name != null && !o1.name.isEmpty()) {
+                s1 = o1.name.toLowerCase();
+            }
+
+            String s2 = "";
+            if (o2.author != null && !o2.author.isEmpty()) {
+                s2 = o2.author.toLowerCase();
+            } else if (o2.name != null && !o2.name.isEmpty()) {
+                s2 = o2.name.toLowerCase();
+            }
+
+            if (mReverse) {
+                return s2.compareTo(s1);
+            } else {
+                return s1.compareTo(s2);
+            }
+        }
+
+        private int typeCompare(AdPlugFile o1, AdPlugFile o2) {
+            String s1 = getFileExtension(o1);
+            String s2 = getFileExtension(o2);
+            if (s1.equals(s2)) {
+                if (o1.name != null && !o1.name.isEmpty()) {
+                    s1 = o1.name.toLowerCase();
+                }
+                if (o2.name != null && !o2.name.isEmpty()) {
+                    s2 = o2.name.toLowerCase();
+                }
+            }
+            if (mReverse) {
+                return s2.compareTo(s1);
+            } else {
+                return s1.compareTo(s2);
+            }
+        }
+
+        private String getFileExtension(AdPlugFile o) {
+            String extension = "";
+            if (o.name != null && !o.name.isEmpty()) {
+                int i = o.name.lastIndexOf(".");
+                if (i != -1) {
+                    extension = o.name.substring(i + 1).toUpperCase();
+                }
+            }
+            return extension;
+        }
+
+        private int lengthComparison(AdPlugFile o1, AdPlugFile o2) {
+            Long l1 = o1.songlength;
+            Long l2 = o2.songlength;
+            if (mReverse) {
+                return l2.compareTo(l1);
+            } else {
+                return l1.compareTo(l2);
+            }
+        }
+
         @Override
         public int compare(AdPlugFile o1, AdPlugFile o2) {
-            String s1 = (o1 != null && o1.name != null) ? o1.name.toLowerCase() : "";
-            String s2 = (o2 != null && o2.name != null) ? o2.name.toLowerCase() : "";
-            return s1.compareTo(s2);
+            if (o1 == o2) {
+                return 0;
+            } else if (o1 == null) {
+                return -1;
+            } else if (o2 == null) {
+                return 1;
+            }
+
+            if (o1.getClass() != o2.getClass()) {
+                throw new ClassCastException();
+            }
+
+            if (o1.dir && o2.dir) {
+                if (mSortBy == IAdPlugDb.SORTBY_NONE) {
+                    return 0;
+                } else {
+                    return fileCompare(o1, o2);
+                }
+            } else if (o1.dir) {
+                return -1;
+            } else if (o2.dir) {
+                return 1;
+            }
+
+            int comparison = 0;
+            switch (mSortBy) {
+                case IAdPlugDb.SORTBY_NONE:
+                    break;
+                case IAdPlugDb.SORTBY_TITLE:
+                    comparison = titleCompare(o1, o2);
+                    break;
+                case IAdPlugDb.SORTBY_AUTHOR:
+                    comparison = authorCompare(o1, o2);
+                    break;
+                case IAdPlugDb.SORTBY_FILE:
+                    comparison = fileCompare(o1, o2);
+                    break;
+                case IAdPlugDb.SORTBY_TYPE:
+                    comparison = typeCompare(o1, o2);
+                    break;
+                case IAdPlugDb.SORTBY_LENGTH:
+                    comparison = lengthComparison(o1, o2);
+                    break;
+                default:
+                    break;
+            }
+
+            return comparison;
         }
     }
 

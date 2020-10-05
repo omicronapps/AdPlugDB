@@ -294,6 +294,7 @@ Copyright (C) 2020 [Fredrik Claesson](https://github.com/omicronapps)
 
 - 1.0.0 Initial release
 - 1.1.0 Support for quick listings and for hiding invalid files from list
+- 1.2.0 Extended sort options
 
 ## License
 

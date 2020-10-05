@@ -1,14 +1,20 @@
 package com.omicronapplications.adplugdb;
 
 public interface IAdPlugDb {
-    int SORT_NONE = 0;
-    int SORT_ASCENDING = 1;
-    int SORT_DESCENDING = 2;
+    int SORTBY_NONE = 0;
+    int SORTBY_TITLE = 1;
+    int SORTBY_AUTHOR = 2;
+    int SORTBY_FILE = 3;
+    int SORTBY_TYPE = 4;
+    int SORTBY_LENGTH = 5;
+    int ORDER_NONE = 0;
+    int ORDER_ASCENDING = 1;
+    int ORDER_DESCENDING = 2;
 
     void getStatus();
     void index(String root, boolean quick);
     void delete();
-    void list(String path, int order, boolean quick, boolean hide);
+    void list(String path, int sortby, int order, boolean quick, boolean hide);
     void add(String song, long length);
     void remove(String song);
     void getCount();
