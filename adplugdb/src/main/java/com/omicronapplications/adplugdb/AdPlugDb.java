@@ -11,7 +11,6 @@ import android.util.Log;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -51,6 +50,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
     private String mPath;
     private boolean mOnList;
     private boolean mHide;
+    private boolean mRandom;
     private int mSortBy;
     private int mOrder;
     private List<String> mListSongs;
@@ -63,6 +63,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
         mPath = null;
         mOnList = false;
         mHide = false;
+        mRandom = false;
         mSortBy = IAdPlugDb.SORTBY_NONE;
         mOrder = IAdPlugDb.ORDER_ASCENDING;
         mListSongs = new ArrayList<>();
@@ -161,9 +162,10 @@ public class AdPlugDb extends SQLiteOpenHelper {
         }
     }
 
-    void list(File path, int sortby, int order, boolean quick, boolean hide) {
+    void list(File path, int sortby, int order, boolean quick, boolean hide, boolean random) {
         boolean found = hasPath(path);
         mHide = hide;
+        mRandom = random;
         if (found && quick) {
             onList();
             return;
@@ -201,6 +203,13 @@ public class AdPlugDb extends SQLiteOpenHelper {
 
         if (onlist) {
             onList();
+        }
+    }
+
+    void playlist() {
+        if (mCallback != null) {
+            List<AdPlugFile> dbFiles = queryDB(KEY_PLAYLIST, 1);
+            mCallback.onPlaylist(dbFiles);
         }
     }
 
@@ -296,15 +305,26 @@ public class AdPlugDb extends SQLiteOpenHelper {
         if (mCallback != null) {
             List<AdPlugFile> dbFiles = queryDB(KEY_PATH, mPath);
             if (mSortBy != IAdPlugDb.SORTBY_NONE) {
-                java.util.Collections.sort(dbFiles, new AdPlugComparator(mSortBy, mOrder));
+                try {
+                    java.util.Collections.sort(dbFiles, new AdPlugComparator(mSortBy, mOrder));
+                } catch (UnsupportedOperationException e) {
+                    Log.e(TAG, "onList: UnsupportedOperationException: " + e.getMessage());
+                }
             }
             if (mHide) {
                 Iterator<AdPlugFile> it = dbFiles.iterator();
                 while (it.hasNext()) {
                     AdPlugFile file = it.next();
-                    if (file != null && !file.valid && !file.dir && !file.playlist) {
+                    if (file != null && !file.valid && !file.dir) {
                         it.remove();
                     }
+                }
+            }
+            if (mRandom) {
+                try {
+                    java.util.Collections.shuffle(dbFiles);
+                } catch (UnsupportedOperationException e) {
+                    Log.e(TAG, "onList: UnsupportedOperationException: " + e.getMessage());
                 }
             }
             mCallback.onList(dbFiles);
@@ -589,6 +609,16 @@ public class AdPlugDb extends SQLiteOpenHelper {
         } else {
             sql = sql + " WHERE " + key + " IS NULL";
         }
+        return queryDB(sql);
+    }
+
+    private List<AdPlugFile> queryDB(String key, int value) {
+        String sql = "SELECT * FROM " + TABLE_NAME;
+        if (key == null) {
+            Log.e(TAG, "queryDB: invalid key");
+            return new ArrayList<>();
+        }
+        sql = sql + " WHERE " + key + " = " + "" + value + "";
         return queryDB(sql);
     }
 

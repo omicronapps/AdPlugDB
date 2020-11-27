@@ -14,7 +14,8 @@ public interface IAdPlugDb {
     void getStatus();
     void index(String root, boolean quick);
     void delete();
-    void list(String path, int sortby, int order, boolean quick, boolean hide);
+    void list(String path, int sortby, int order, boolean quick, boolean hide, boolean random);
+    void playlist();
     void add(String song, long length);
     void remove(String song);
     void getCount();

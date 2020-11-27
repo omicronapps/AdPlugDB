@@ -22,7 +22,7 @@ AdPlugDb is used in [AndPlug](https://play.google.com/store/apps/details?id=com.
 ## Prerequisites
 
 - [Android 4.0.3](https://developer.android.com/about/versions/android-4.0.3) (API Level: 15) or later (`ICE_CREAM_SANDWICH_MR1`)
-- [Android Gradle Plugin](https://developer.android.com/studio/releases/gradle-plugin) 4.0.1) or later (`gradle:4.0.1`)
+- [Android Gradle Plugin](https://developer.android.com/studio/releases/gradle-plugin) 4.1.1) or later (`gradle:4.1.1`)
 
 ## Installation
 
@@ -118,12 +118,22 @@ Delete database. Deletion completed when `onStatus()` callback returns `dbStatus
 
 #### list
 
-```void list(String path, int order)```
+```void list(String path, int sortby, int order, boolean quick, boolean hide, boolean random)```
 
-Get list of songs under provided path (not recursive). Result returned through callback `onList(List<AdPlugFile> songs)`.
+Get list of songs under provided path. Result returned through callback `onList(List<AdPlugFile> songs)`.
 
 - `path` - path to folder
+- `sortby` - sort criterion
 - `order` - sort order
+- `quick` - use existing database
+- `hide` - hide unsupported files
+- `random` - shuffle list
+
+#### playlist
+
+```void playlist()```
+
+Get list of all playlists songs. Result returned through callback `onPlaylist(List<AdPlugFile> playlists)`.
 
 #### add
 
@@ -194,6 +204,14 @@ Request from `AdPlugDb` instance for AdPlug song information.
 Callback from `AdPlugDb` with list of songs, following request through `list()`.
 
 - `songs` - list of songs in requested folder
+
+#### onPlaylist
+
+```void onPlaylist(List<AdPlugFile> playlists)```
+
+Callback from `AdPlugDb` with list of playlists, following request through `playlist()`.
+
+- `playlists` - list of all playlists
 
 #### onStatus
 
@@ -295,6 +313,7 @@ Copyright (C) 2020 [Fredrik Claesson](https://github.com/omicronapps)
 - 1.0.0 Initial release
 - 1.1.0 Support for quick listings and for hiding invalid files from list
 - 1.2.0 Extended sort options
+- 1.3.0 Added support for retrieving playlists and random shuffle
 
 ## License
 

@@ -21,13 +21,15 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
     private static final int ADPLUGDB_INDEX = 3;
     private static final int ADPLUGDB_DELETE = 4;
     private static final int ADPLUGDB_LIST = 5;
-    private static final int ADPLUGDB_ADD = 6;
-    private static final int ADPLUGDB_REMOVE = 7;
-    private static final int ADPLUGDB_GETCOUNT = 8;
-    private static final int ADPLUGDB_ONSONGINFO = 9;
+    private static final int ADPLUGDB_PLAYLIST = 6;
+    private static final int ADPLUGDB_ADD = 7;
+    private static final int ADPLUGDB_REMOVE = 8;
+    private static final int ADPLUGDB_GETCOUNT = 9;
+    private static final int ADPLUGDB_ONSONGINFO = 10;
     private static final String BUNDLE_PATH = "path";
     private static final String BUNDLE_QUICK = "quick";
     private static final String BUNDLE_HIDE = "hide";
+    private static final String BUNDLE_RANDOM = "random";
     private static final String BUNDLE_SONG = "song";
     private static final String BUNDLE_TYPE = "type";
     private static final String BUNDLE_TITLE = "title";
@@ -99,8 +101,12 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
                     int order = data.getInt(BUNDLE_ORDER);
                     boolean quick = data.getBoolean(BUNDLE_QUICK);
                     boolean hide = data.getBoolean(BUNDLE_HIDE);
+                    boolean random = data.getBoolean(BUNDLE_RANDOM);
                     File f = getFile(path);
-                    mDB.list(f, sortby, order, quick, hide);
+                    mDB.list(f, sortby, order, quick, hide, random);
+                    break;
+                case ADPLUGDB_PLAYLIST:
+                    mDB.playlist();
                     break;
                 case ADPLUGDB_ADD:
                     data = msg.getData();
@@ -216,8 +222,8 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
                 msg.setData(data);
             }
             if (what == ADPLUGDB_STATUS || what == ADPLUGDB_INDEX ||
-                    what == ADPLUGDB_DELETE || what == ADPLUGDB_LIST ||
-                    what == ADPLUGDB_GETCOUNT) {
+                    what == ADPLUGDB_DELETE || what == ADPLUGDB_PLAYLIST ||
+                    what == ADPLUGDB_LIST || what == ADPLUGDB_GETCOUNT) {
                 mHandler.removeMessages(what);
             }
             mHandler.sendMessage(msg);
@@ -250,14 +256,20 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
     }
 
     @Override
-    public void list(String path, int sortby, int order, boolean quick, boolean hide) {
+    public void list(String path, int sortby, int order, boolean quick, boolean hide, boolean random) {
         Bundle data = new Bundle();
         data.putString(BUNDLE_PATH, path);
         data.putInt(BUNDLE_SORTBY, sortby);
         data.putInt(BUNDLE_ORDER, order);
         data.putBoolean(BUNDLE_QUICK, quick);
         data.putBoolean(BUNDLE_HIDE, hide);
+        data.putBoolean(BUNDLE_RANDOM, random);
         sendMessageToAdPlugDb(ADPLUGDB_LIST, data);
+    }
+
+    @Override
+    public void playlist() {
+        sendMessageToAdPlugDb(ADPLUGDB_PLAYLIST, null);
     }
 
     @Override

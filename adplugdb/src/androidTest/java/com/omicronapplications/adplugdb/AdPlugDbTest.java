@@ -29,10 +29,13 @@ public class AdPlugDbTest {
     private CountDownLatch mLatch;
     private Map<String, AdPlugFile> mExpected = new HashMap<String, AdPlugFile>() {{
         put("en_lille_test.d00", new AdPlugFile(getCacheDir().getAbsolutePath(), "en_lille_test.d00", "EdLib packed (version 4)", "En lille test", "Morten Sigaard", "", 2563, 60324, 1, true, false));
+        put("playlist.m3u", new AdPlugFile(getCacheDir().getAbsolutePath(), "playlist.m3u", "", "", "", "", 0, -1, -1, false, true));
         put("d00", new AdPlugFile(getCacheDir().getAbsolutePath(), "d00"));
+        put("songs.m3u", new AdPlugFile(new File(getCacheDir(), "d00").getAbsolutePath(), "songs.m3u", "", "", "", "", 0, -1, -1, false, true));
         put("fresh.d00", new AdPlugFile(new File(getCacheDir(), "d00").getAbsolutePath(), "fresh.d00", "EdLib packed (version 4)", "Fresh", "Morten Sigaard", "", 1497, 21342, 1, true, false));
         put("gone.d00", new AdPlugFile(new File(getCacheDir(), "d00").getAbsolutePath(), "gone.d00", "EdLib packed (version 1)", "", "",  "\"GONE...\" by DRAX - converted by JCH, 13/1-1992. Player & music (C) Vibrants, 1992.", 1758, 76886, 1, true, false));
         put("edlib", new AdPlugFile(getCacheDir().getAbsolutePath(), "edlib"));
+        put("test.m3u", new AdPlugFile(new File(getCacheDir(), "edlib").getAbsolutePath(), "test.m3u", "", "", "", "", 0, -1, -1, false, true));
         put("super_nova.d00", new AdPlugFile(new File(getCacheDir(), "edlib").getAbsolutePath(), "super_nova.d00", "EdLib packed (version 4)", "Super Nova", "Metal & Drax (V)", "", 3272, 68956, 1, true, false));
         put("the_alibi.d00", new AdPlugFile(new File(getCacheDir(), "edlib").getAbsolutePath(), "the_alibi.d00", "EdLib packed (version 1)", "", "",  "Music originally composed by LAXITY on the Commodore 64 (in his own routine), and then later converted to the PC by JCH.  AdLib Player (C) Copyright 1992 Jens-Christian Huus.", 3753, 186624, 1, true, false));
     }};
@@ -72,6 +75,12 @@ public class AdPlugDbTest {
 
         @Override
         public void onList(List<AdPlugFile> songs) {
+            mActual = songs;
+            mLatch.countDown();
+        }
+
+        @Override
+        public void onPlaylist(List<AdPlugFile> songs) {
             mActual = songs;
             mLatch.countDown();
         }
@@ -169,10 +178,13 @@ public class AdPlugDbTest {
     private void cacheFiles() {
         File cacheDir = mkdir(null);
         fileFromAssets(cacheDir, "en_lille_test.d00");
+        fileFromAssets(cacheDir, "playlist.m3u");
         File d00 = mkdir("d00");
+        fileFromAssets(d00, "songs.m3u");
         fileFromAssets(d00, "fresh.d00");
         fileFromAssets(d00, "gone.d00");
         File edlib = mkdir("edlib");
+        fileFromAssets(edlib, "test.m3u");
         fileFromAssets(edlib, "super_nova.d00");
         fileFromAssets(edlib, "the_alibi.d00");
     }
@@ -223,7 +235,7 @@ public class AdPlugDbTest {
         mLatch = new CountDownLatch(1);
         mService.getCount();
         await();
-        assertEquals(7, mCount);
+        assertEquals(10, mCount);
     }
 
     @Test
@@ -234,21 +246,21 @@ public class AdPlugDbTest {
         await();
 
         File[] files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         mLatch = new CountDownLatch(1);
         await();
         compare(files);
 
         cacheDir = new File(getCacheDir(), "d00");
         files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         mLatch = new CountDownLatch(1);
         await();
         compare(files);
 
         cacheDir = new File(getCacheDir(), "edlib");
         files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         mLatch = new CountDownLatch(1);
         await();
         compare(files);
@@ -258,21 +270,21 @@ public class AdPlugDbTest {
     public void list() {
         File cacheDir = getCacheDir();
         File[] files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         mLatch = new CountDownLatch(1);
         await();
         limitedCompare(files);
 
         cacheDir = new File(getCacheDir(), "d00");
         files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         mLatch = new CountDownLatch(1);
         await();
         limitedCompare(files);
 
         cacheDir = new File(getCacheDir(), "edlib");
         files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         mLatch = new CountDownLatch(1);
         await();
         limitedCompare(files);
@@ -291,7 +303,7 @@ public class AdPlugDbTest {
         mLatch = new CountDownLatch(1);
         mService.getCount();
         await();
-        assertEquals(5, mCount);
+        assertEquals(8, mCount);
 
         f = fileFromAssets(new File(cacheDir, "d00"), "fresh.d00");
         assertTrue("exists: fresh.d00", f.exists());
@@ -303,7 +315,7 @@ public class AdPlugDbTest {
         mLatch = new CountDownLatch(1);
         mService.getCount();
         await();
-        assertEquals(7, mCount);
+        assertEquals(10, mCount);
     }
 
     @Test
@@ -319,16 +331,16 @@ public class AdPlugDbTest {
 
         cacheDir = new File(getCacheDir(), "d00");
         File[] files = cacheDir.listFiles();
-        assertEquals(1, files.length);
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
+        assertEquals(2, files.length);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         mLatch = new CountDownLatch(1);
         await();
         compare(files);
 
         cacheDir = new File(getCacheDir(), "edlib");
         files = cacheDir.listFiles();
-        assertEquals(1, files.length);
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
+        assertEquals(2, files.length);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         mLatch = new CountDownLatch(1);
         await();
         compare(files);
@@ -340,18 +352,35 @@ public class AdPlugDbTest {
 
         cacheDir = new File(getCacheDir(), "d00");
         files = cacheDir.listFiles();
-        assertEquals(2, files.length);
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
+        assertEquals(3, files.length);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         mLatch = new CountDownLatch(1);
         await();
         limitedCompare(files);
 
         cacheDir = new File(getCacheDir(), "edlib");
         files = cacheDir.listFiles();
-        assertEquals(2, files.length);
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false);
+        assertEquals(3, files.length);
+        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         mLatch = new CountDownLatch(1);
         await();
         limitedCompare(files);
+    }
+
+    @Test
+    public void playlist() {
+        File cacheDir = getCacheDir();
+        mLatch = new CountDownLatch(1);
+        mService.index(cacheDir.getAbsolutePath(), false);
+        await();
+        mLatch = new CountDownLatch(1);
+        mService.getCount();
+        await();
+        assertEquals(10, mCount);
+
+        mLatch = new CountDownLatch(1);
+        mService.playlist();
+        await();
+        assertEquals(3, mActual.size());
     }
 }

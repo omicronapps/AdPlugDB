@@ -105,8 +105,7 @@ public class AdPlugFile implements Comparator<AdPlugFile>, Comparable<AdPlugFile
             return false;
         }
         AdPlugFile other = (AdPlugFile) obj;
-        return path != null &&
-                equals(path, other.path) &&
+        return equals(path, other.path) &&
                 equals(name, other.name) &&
                 equals(type, other.type) &&
                 equals(title, other.title) &&
