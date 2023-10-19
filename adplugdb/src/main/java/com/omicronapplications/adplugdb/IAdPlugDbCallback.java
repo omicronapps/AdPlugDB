@@ -16,4 +16,5 @@ public interface IAdPlugDbCallback {
     void onPlaylist(List<AdPlugFile> playlists);
     void onStatus(dbStatus status);
     void onGetCount(long count);
+    void onSearch(List<AdPlugFile> songs);
 }

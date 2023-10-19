@@ -3,10 +3,9 @@ package com.omicronapplications.adplugdb;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.os.Build;
+import android.database.sqlite.SQLiteStatement;
 import android.util.Log;
 
 import java.io.File;
@@ -145,20 +144,24 @@ public class AdPlugDb extends SQLiteOpenHelper {
         }
     }
 
-    void deleteDB() {
+    void delete() {
         SQLiteDatabase db = getWritableDatabase();
 
         File databaseFile = new File(db.getPath());
         boolean deleted = false;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            deleted = SQLiteDatabase.deleteDatabase(databaseFile);
-        } else {
-            deleted = databaseFile.delete();
+
+        int rows = -1;
+        try {
+            rows = db.delete(TABLE_NAME, null, null);
+        } catch (android.database.SQLException e) {
+            Log.e(TAG, "delete: SQLException: " + e.getMessage());
         }
+        deleted = (rows >= 0);
+
         if (deleted) {
             updateStatus(UNINITIALIZED);
         } else {
-            Log.e(TAG, "deleteDB: failed to delete database: " + databaseFile.getAbsolutePath());
+            Log.e(TAG, "delete: failed to delete database: " + databaseFile.getAbsolutePath());
         }
     }
 
@@ -179,7 +182,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
             if (!mLock.isHeldByCurrentThread()) {
                 mLock.lock();
             }
-            mListSongs.clear();
+//            mListSongs.clear();
         } finally {
             mLock.unlock();
         }
@@ -208,7 +211,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
 
     void playlist() {
         if (mCallback != null) {
-            List<AdPlugFile> dbFiles = queryDB(KEY_PLAYLIST, 1);
+            List<AdPlugFile> dbFiles = findInteger(KEY_PLAYLIST, 1);
             mCallback.onPlaylist(dbFiles);
         }
     }
@@ -224,6 +227,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
             if (!contains) {
                 if (onlist) {
                     mListSongs.add(name);
+                    mOnList = true;
                 }
                 mIndexSongs.add(name);
             }
@@ -252,13 +256,45 @@ public class AdPlugDb extends SQLiteOpenHelper {
         deleteFromDB(song);
     }
 
+    void rename(String before, String after) {
+        String sql = "SELECT rowid,* FROM " + TABLE_NAME;
+        List<AdPlugFile> tests = queryDB(sql);
+
+        File f = new File(before);
+        AdPlugFile beforeSong = new AdPlugFile(f.getParent(), f.getName(), null, null, null, null, 0, -1, -1, false, isPlaylist(f));
+        f = new File(after);
+        AdPlugFile afterSong = new AdPlugFile(f.getParent(), f.getName(), null, null, null, null, 0, -1, -1, false, isPlaylist(f));
+        List<AdPlugFile> songs = findSong(beforeSong);
+        for (AdPlugFile song : songs) {
+            int rowid = song.rowid;
+            renameInDB(rowid, afterSong);
+        }
+    }
+
     void getCount() {
         SQLiteDatabase db = getReadableDatabase();
 
-        long count = DatabaseUtils.queryNumEntries(db, TABLE_NAME);
+        String sql = "SELECT COUNT(*) FROM " + TABLE_NAME;
+        SQLiteStatement statement = db.compileStatement(sql);
+        long count = statement.simpleQueryForLong();
 
         if (mCallback != null) {
             mCallback.onGetCount(count);
+        }
+    }
+
+    void search(String query) {
+        String sql = "SELECT rowid,* FROM " + TABLE_NAME + " WHERE " +
+                TABLE_NAME + " MATCH '" +
+                KEY_PATH + ":*" + query + "* OR " +
+                KEY_NAME + ":*" + query + "* OR " +
+                KEY_TITLE + ":*" + query + "* OR " +
+                KEY_AUTHOR + ":*" + query + "* OR " +
+                KEY_DESC + ":*" + query + "*'";
+        List<AdPlugFile> songs = queryDB(sql);
+
+        if (mCallback != null) {
+            mCallback.onSearch(songs);
         }
     }
 
@@ -279,7 +315,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
                     initialized = true;
                 }
             } else {
-                Log.e(TAG, "onSongInfo: " + name + " NOT FOUND!!!");
+                Log.e(TAG, "onSongInfo: " + name + " NOT FOUND!");
             }
             if (mListSongs.contains(name)) {
                 mListSongs.remove(name);
@@ -303,7 +339,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
 
     private void onList() {
         if (mCallback != null) {
-            List<AdPlugFile> dbFiles = queryDB(KEY_PATH, mPath);
+            List<AdPlugFile> dbFiles = findString(KEY_PATH, mPath);
             if (mSortBy != IAdPlugDb.SORTBY_NONE) {
                 try {
                     java.util.Collections.sort(dbFiles, new AdPlugComparator(mSortBy, mOrder));
@@ -510,7 +546,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
         SQLiteDatabase db = getWritableDatabase();
         boolean found = false;
 
-        String sql = "SELECT * FROM " + TABLE_NAME;
+        String sql = "SELECT rowid,* FROM " + TABLE_NAME;
         sql = sql + " WHERE " + KEY_PATH + " = " + "'" + name + "'" + " LIMIT 1";
         Cursor cursor = null;
         try {
@@ -527,7 +563,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
 
     private List<AdPlugFile> recursiveIndex(File path, boolean onlist) {
         File[] fs  = path.listFiles();
-        List<AdPlugFile> dbFiles = queryDB(KEY_PATH, path.getAbsolutePath());
+        List<AdPlugFile> dbFiles = findString(KEY_PATH, path.getAbsolutePath());
 
         // Delete non-existent files from DB
         if (dbFiles.size() > 0) {
@@ -565,7 +601,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
     }
 
     private List<AdPlugFile> queryDB(String sql) {
-        SQLiteDatabase db = getWritableDatabase();
+        SQLiteDatabase db = getReadableDatabase();
 
         Cursor cursor = null;
         try {
@@ -573,35 +609,36 @@ public class AdPlugDb extends SQLiteOpenHelper {
         } catch (android.database.SQLException e) {
             Log.e(TAG, "queryDB: SQLException: " + e.getMessage());
         }
-        List<AdPlugFile> sids = new ArrayList<>();
+        List<AdPlugFile> songs = new ArrayList<>();
         if (cursor != null) {
             if (cursor.moveToFirst()) {
                 do {
-                    AdPlugFile sid = new AdPlugFile();
-                    sid.path = cursor.getString(0);
-                    sid.name = cursor.getString(1);
-                    sid.type = cursor.getString(2);
-                    sid.title = cursor.getString(3);
-                    sid.author = cursor.getString(4);
-                    sid.desc = cursor.getString(5);
-                    sid.length = cursor.getLong(6);
-                    sid.songlength = cursor.getLong(7);
-                    sid.subsongs = cursor.getInt(8);
-                    sid.valid = cursor.getInt(9) != 0;
-                    sid.dir = cursor.getInt(10) != 0;
-                    sid.playlist = cursor.getInt(11) != 0;
-                    sids.add(sid);
+                    AdPlugFile song = new AdPlugFile();
+                    song.rowid = cursor.getInt(0);
+                    song.path = cursor.getString(1);
+                    song.name = cursor.getString(2);
+                    song.type = cursor.getString(3);
+                    song.title = cursor.getString(4);
+                    song.author = cursor.getString(5);
+                    song.desc = cursor.getString(6);
+                    song.length = cursor.getLong(7);
+                    song.songlength = cursor.getLong(8);
+                    song.subsongs = cursor.getInt(9);
+                    song.valid = cursor.getInt(10) != 0;
+                    song.dir = cursor.getInt(11) != 0;
+                    song.playlist = cursor.getInt(12) != 0;
+                    songs.add(song);
                 } while (cursor.moveToNext());
             }
             cursor.close();
         }
-        return sids;
+        return songs;
     }
 
-    private List<AdPlugFile> queryDB(String key, String value) {
-        String sql = "SELECT * FROM " + TABLE_NAME;
+    private List<AdPlugFile> findString(String key, String value) {
+        String sql = "SELECT rowid,* FROM " + TABLE_NAME;
         if (key == null) {
-            Log.e(TAG, "queryDB: invalid key");
+            Log.e(TAG, "findString: invalid key");
             return new ArrayList<>();
         }
         if (value != null) {
@@ -612,13 +649,22 @@ public class AdPlugDb extends SQLiteOpenHelper {
         return queryDB(sql);
     }
 
-    private List<AdPlugFile> queryDB(String key, int value) {
-        String sql = "SELECT * FROM " + TABLE_NAME;
+    private List<AdPlugFile> findInteger(String key, int value) {
+        String sql = "SELECT rowid,* FROM " + TABLE_NAME;
         if (key == null) {
-            Log.e(TAG, "queryDB: invalid key");
+            Log.e(TAG, "findInteger: invalid key");
             return new ArrayList<>();
         }
         sql = sql + " WHERE " + key + " = " + "" + value + "";
+        return queryDB(sql);
+    }
+
+    private List<AdPlugFile> findSong(AdPlugFile song) {
+        String path = song.path.replace("'", "''");
+        String name = song.name.replace("'", "''");
+        String sql = "SELECT rowid,* FROM " + TABLE_NAME;
+        sql = sql + " WHERE " + KEY_PATH + " = " + "'" + path + "'";
+        sql = sql + " AND " + KEY_NAME + " = " + "'" + name + "'";
         return queryDB(sql);
     }
 
@@ -646,11 +692,20 @@ public class AdPlugDb extends SQLiteOpenHelper {
         values.put(KEY_DIR, (int) (song.dir ? 1 : 0));
         values.put(KEY_PLAYLIST, (int) (song.playlist ? 1: 0));
 
-        // Duplicate files are not allowed, always replace any existing entry in DB
-        deleteFromDB(song);
+        List<AdPlugFile> songs = findSong(song);
         long row = 0;
+
         try {
-            row = db.insert(TABLE_NAME, null, values);
+            // Duplicate files are not allowed, remove
+            if (songs.size() > 1) {
+                deleteFromDB(song);
+                songs.clear();
+            }
+
+            // Add new database entry if none currently existing
+            if (songs.isEmpty()) {
+                row = db.insert(TABLE_NAME, null, values);
+            }
         } catch (android.database.SQLException e) {
             Log.e(TAG, "addToDB: SQLException: " + e.getMessage());
         }
@@ -670,6 +725,26 @@ public class AdPlugDb extends SQLiteOpenHelper {
             rows = db.delete(TABLE_NAME, whereClause, null);
         } catch (android.database.SQLException e) {
             Log.e(TAG, "delete: SQLException: " + e.getMessage());
+        }
+        return (rows >= 1);
+    }
+
+    private boolean renameInDB(int rowid, AdPlugFile song) {
+        SQLiteDatabase db = getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        String path = song.path.replace("'", "''");
+        String name = song.name.replace("'", "''");
+        values.put(KEY_PATH, path);
+        values.put(KEY_NAME, name);
+
+        String whereClause = "rowid = " + rowid;
+
+        int rows = 0;
+        try {
+            rows = db.update(TABLE_NAME, values, whereClause, null);
+        } catch (android.database.SQLException e) {
+            Log.e(TAG, "update: SQLException: " + e.getMessage());
         }
         return (rows >= 1);
     }

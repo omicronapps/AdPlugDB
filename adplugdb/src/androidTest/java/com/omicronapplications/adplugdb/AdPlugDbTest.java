@@ -23,9 +23,8 @@ import static org.junit.Assert.*;
 @RunWith(AndroidJUnit4.class)
 public class AdPlugDbTest {
     private static final long TEST_TIMEOUT = 1000; // ms
-    private IAdPlugDb mService;
     private IAdPlugDbCallback mCallback;
-    private AdPlugDbController mController;
+    private AdPlugDb mDb;
     private CountDownLatch mLatch;
     private Map<String, AdPlugFile> mExpected = new HashMap<String, AdPlugFile>() {{
         put("en_lille_test.d00", new AdPlugFile(getCacheDir().getAbsolutePath(), "en_lille_test.d00", "EdLib packed (version 4)", "En lille test", "Morten Sigaard", "", 2563, 60324, 1, true, false));
@@ -45,22 +44,15 @@ public class AdPlugDbTest {
     private class TestCallback implements IAdPlugDbCallback {
         @Override
         public void onDBServiceConnected() {
-            mService = mController.getService();
-            assertNotNull("IAdPlugDb", mService);
-            mService.delete();
-            if (mLatch != null) {
-                mLatch.countDown();
-            }
         }
 
         @Override
         public void onDBServiceDisconnected() {
-            mService = null;
         }
 
         @Override
         public void onStatusChanged(dbStatus status) {
-            if (status == dbStatus.INITIALIZED) {
+            if (status == dbStatus.UNINITIALIZED || status == dbStatus.INITIALIZED) {
                 mLatch.countDown();
             }
         }
@@ -70,7 +62,7 @@ public class AdPlugDbTest {
             File f = new File(name);
             AdPlugFile song = mExpected.get(f.getName());
             assertNotNull(song);
-            mService.onSongInfo(song.path + File.separator + song.name, song.type, song.title, song.author, song.desc, song.length, song.songlength, song.subsongs, song.valid, song.playlist);
+            mDb.onSongInfo(song.path + File.separator + song.name, song.type, song.title, song.author, song.desc, song.length, song.songlength, song.subsongs, song.valid, song.playlist);
         }
 
         @Override
@@ -94,6 +86,12 @@ public class AdPlugDbTest {
             mCount = count;
             mLatch.countDown();
         }
+
+        @Override
+        public void onSearch(List<AdPlugFile> songs) {
+            mActual = songs;
+            mLatch.countDown();
+        }
     }
 
     @Before
@@ -102,18 +100,16 @@ public class AdPlugDbTest {
         deleteCacheDir(getCacheDir());
         cacheFiles();
 
-        mLatch = new CountDownLatch(1);
-        mController = new AdPlugDbController(mCallback, InstrumentationRegistry.getInstrumentation().getTargetContext());
-        mController.startDB();
-        await();
+        mDb = new AdPlugDb(InstrumentationRegistry.getInstrumentation().getContext());
+        mDb.setCallback(mCallback);
     }
 
     @After
     public void shutdown() {
-        if (mController != null) {
-            mController.stopDB();
-            mController = null;
-        }
+    }
+
+    private void prewait(int count) {
+        mLatch = new CountDownLatch(count);
     }
 
     private void await() {
@@ -229,39 +225,56 @@ public class AdPlugDbTest {
     @Test
     public void index() {
         File cacheDir = getCacheDir();
-        mLatch = new CountDownLatch(1);
-        mService.index(cacheDir.getAbsolutePath(), false);
+        prewait(2);
+        mDb.index(cacheDir, false);
         await();
-        mLatch = new CountDownLatch(1);
-        mService.getCount();
+        prewait(1);
+        mDb.getCount();
         await();
         assertEquals(10, mCount);
     }
 
     @Test
+    public void delete() {
+        File cacheDir = getCacheDir();
+        prewait(2);
+        mDb.index(cacheDir, false);
+        await();
+
+        prewait(1);
+        mDb.delete();
+        await();
+
+        prewait(1);
+        mDb.getCount();
+        await();
+        assertEquals(0, mCount);
+    }
+
+    @Test
     public void index_and_list() {
         File cacheDir = getCacheDir();
-        mLatch = new CountDownLatch(1);
-        mService.index(cacheDir.getAbsolutePath(), false);
+        prewait(2);
+        mDb.index(cacheDir, false);
         await();
 
         File[] files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
-        mLatch = new CountDownLatch(1);
+        prewait(1);
+        mDb.list(cacheDir, IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         await();
         compare(files);
 
         cacheDir = new File(getCacheDir(), "d00");
         files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
-        mLatch = new CountDownLatch(1);
+        prewait(1);
+        mDb.list(cacheDir, IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         await();
         compare(files);
 
         cacheDir = new File(getCacheDir(), "edlib");
         files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
-        mLatch = new CountDownLatch(1);
+        prewait(1);
+        mDb.list(cacheDir, IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         await();
         compare(files);
     }
@@ -270,22 +283,22 @@ public class AdPlugDbTest {
     public void list() {
         File cacheDir = getCacheDir();
         File[] files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
-        mLatch = new CountDownLatch(1);
+        prewait(1);
+        mDb.list(cacheDir, IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         await();
         limitedCompare(files);
 
         cacheDir = new File(getCacheDir(), "d00");
         files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
-        mLatch = new CountDownLatch(1);
+        prewait(1);
+        mDb.list(cacheDir, IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         await();
         limitedCompare(files);
 
         cacheDir = new File(getCacheDir(), "edlib");
         files = cacheDir.listFiles();
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
-        mLatch = new CountDownLatch(1);
+        prewait(1);
+        mDb.list(cacheDir, IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         await();
         limitedCompare(files);
     }
@@ -297,11 +310,11 @@ public class AdPlugDbTest {
         assertTrue("delete: fresh.d00", f.delete());
         f = new File(cacheDir, "edlib" + File.separator + "the_alibi.d00");
         assertTrue("delete: fresh.d00", f.delete());
-        mLatch = new CountDownLatch(1);
-        mService.index(cacheDir.getAbsolutePath(), false);
+        prewait(2);
+        mDb.index(cacheDir, false);
         await();
-        mLatch = new CountDownLatch(1);
-        mService.getCount();
+        prewait(1);
+        mDb.getCount();
         await();
         assertEquals(8, mCount);
 
@@ -309,11 +322,11 @@ public class AdPlugDbTest {
         assertTrue("exists: fresh.d00", f.exists());
         f = fileFromAssets(new File(cacheDir, "edlib"), "the_alibi.d00");
         assertTrue("exists: the_alibi.d00", f.exists());
-        mLatch = new CountDownLatch(1);
-        mService.index(cacheDir.getAbsolutePath(), false);
+        prewait(1);
+        mDb.index(cacheDir, false);
         await();
-        mLatch = new CountDownLatch(1);
-        mService.getCount();
+        prewait(1);
+        mDb.getCount();
         await();
         assertEquals(10, mCount);
     }
@@ -325,44 +338,44 @@ public class AdPlugDbTest {
         assertTrue("delete: fresh.d00", f.delete());
         f = new File(cacheDir, "edlib" + File.separator + "the_alibi.d00");
         assertTrue("delete: fresh.d00", f.delete());
-        mLatch = new CountDownLatch(1);
-        mService.index(cacheDir.getAbsolutePath(), false);
+        prewait(2);
+        mDb.index(cacheDir, false);
         await();
 
         cacheDir = new File(getCacheDir(), "d00");
         File[] files = cacheDir.listFiles();
         assertEquals(2, files.length);
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
-        mLatch = new CountDownLatch(1);
+        prewait(1);
+        mDb.list(cacheDir, IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         await();
         compare(files);
 
         cacheDir = new File(getCacheDir(), "edlib");
         files = cacheDir.listFiles();
         assertEquals(2, files.length);
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
-        mLatch = new CountDownLatch(1);
+        prewait(1);
+        mDb.list(cacheDir, IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         await();
         compare(files);
 
         f = fileFromAssets(new File(getCacheDir(), "d00"), "fresh.d00");
         assertTrue("exists: fresh.d00", f.exists());
         f = fileFromAssets(new File(getCacheDir(), "edlib"), "the_alibi.d00");
-        assertTrue("exists: the_alibi.d00", f.exists());
+        assertTrue("exists: the_alibi`.d00`", f.exists());
 
         cacheDir = new File(getCacheDir(), "d00");
         files = cacheDir.listFiles();
         assertEquals(3, files.length);
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
-        mLatch = new CountDownLatch(1);
+        prewait(1);
+        mDb.list(cacheDir, IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         await();
         limitedCompare(files);
 
         cacheDir = new File(getCacheDir(), "edlib");
         files = cacheDir.listFiles();
         assertEquals(3, files.length);
-        mService.list(cacheDir.getAbsolutePath(), IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
-        mLatch = new CountDownLatch(1);
+        prewait(1);
+        mDb.list(cacheDir, IAdPlugDb.SORTBY_NONE, IAdPlugDb.ORDER_ASCENDING, false, false, false);
         await();
         limitedCompare(files);
     }
@@ -370,17 +383,82 @@ public class AdPlugDbTest {
     @Test
     public void playlist() {
         File cacheDir = getCacheDir();
-        mLatch = new CountDownLatch(1);
-        mService.index(cacheDir.getAbsolutePath(), false);
+        prewait(2);
+        mDb.index(cacheDir, false);
         await();
-        mLatch = new CountDownLatch(1);
-        mService.getCount();
+        prewait(1);
+        mDb.getCount();
         await();
         assertEquals(10, mCount);
 
-        mLatch = new CountDownLatch(1);
-        mService.playlist();
+        prewait(1);
+        mDb.playlist();
         await();
         assertEquals(3, mActual.size());
+
+        prewait(1);
+        mDb.search("playlist");
+        await();
+        assertEquals("playlist.m3u", mActual.get(0).name);
+
+        prewait(1);
+        String before = new File(getCacheDir(), "playlist.m3u").getAbsolutePath();
+        String after = new File(getCacheDir(), "myplaylist.m3u").getAbsolutePath();
+        mDb.rename(before, after);
+        mDb.search("myplaylist");
+        await();
+        assertEquals(1, mActual.size());
+        assertEquals("myplaylist.m3u", mActual.get(0).name);
+    }
+
+    @Test
+    public void add_remove() {
+        prewait(1);
+        mDb.delete();
+        await();
+
+        mDb.add(new File(new File(getCacheDir(), "edlib"), "super_nova.d00").getAbsolutePath(), 1758, false);
+        prewait(1);
+        mDb.getCount();
+        await();
+        assertEquals(1, mCount);
+
+        mDb.add(new File(new File(getCacheDir(), "d00"), "gone.d00").getAbsolutePath(), 1758, false);
+        mDb.add(new File(getCacheDir().getAbsolutePath(), "super_nova.d00").getAbsolutePath(), 3272, false);
+        prewait(1);
+        mDb.getCount();
+        await();
+        assertEquals(2, mCount);
+
+        mDb.remove(new File(new File(getCacheDir(), "edlib"), "super_nova.d00").getAbsolutePath());
+        prewait(1);
+        mDb.getCount();
+        await();
+        assertEquals(1, mCount);
+
+        mDb.remove("no.such.file");
+        prewait(1);
+        mDb.getCount();
+        await();
+        assertEquals(1, mCount);
+    }
+
+    @Test
+    public void search() {
+        File cacheDir = getCacheDir();
+        prewait(1);
+        mDb.search("m3u");
+        await();
+        assertEquals(3, mActual.size());
+
+        prewait(1);
+        mDb.search("1992");
+        await();
+        assertEquals(2, mActual.size());
+
+        prewait(1);
+        mDb.search("drax");
+        await();
+        assertEquals(2, mActual.size());
     }
 }

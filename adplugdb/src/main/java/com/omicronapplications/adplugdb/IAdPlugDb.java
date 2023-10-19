@@ -18,6 +18,8 @@ public interface IAdPlugDb {
     void playlist();
     void add(String song, long length);
     void remove(String song);
+    void rename(String before, String after);
     void getCount();
+    void search(String query);
     void onSongInfo(String song, String type, String title, String author, String desc, long length, long songlength, int subsongs, boolean valid, boolean playlist);
 }

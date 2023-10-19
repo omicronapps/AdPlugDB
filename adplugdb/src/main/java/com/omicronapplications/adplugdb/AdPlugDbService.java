@@ -24,19 +24,24 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
     private static final int ADPLUGDB_PLAYLIST = 6;
     private static final int ADPLUGDB_ADD = 7;
     private static final int ADPLUGDB_REMOVE = 8;
-    private static final int ADPLUGDB_GETCOUNT = 9;
-    private static final int ADPLUGDB_ONSONGINFO = 10;
+    private static final int ADPLUGDB_RENAME = 9;
+    private static final int ADPLUGDB_GETCOUNT = 10;
+    private static final int ADPLUGDB_SEARCH = 11;
+    private static final int ADPLUGDB_ONSONGINFO = 12;
     private static final String BUNDLE_PATH = "path";
     private static final String BUNDLE_QUICK = "quick";
     private static final String BUNDLE_HIDE = "hide";
     private static final String BUNDLE_RANDOM = "random";
     private static final String BUNDLE_SONG = "song";
+    private static final String BUNDLE_QUERY = "query";
     private static final String BUNDLE_TYPE = "type";
     private static final String BUNDLE_TITLE = "title";
     private static final String BUNDLE_AUTHOR = "author";
     private static final String BUNDLE_DESC = "desc";
     private static final String BUNDLE_LENGTH = "length";
     private static final String BUNDLE_SONGLENGTH = "songlength";
+    private static final String BUNDLE_BEFORE = "before";
+    private static final String BUNDLE_AFTER = "after";
     private static final String BUNDLE_SUBSONGS = "subsongs";
     private static final String BUNDLE_VALID = "valid";
     private static final String BUNDLE_PLAYLIST = "playlist";
@@ -92,7 +97,7 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
                     mIndexHandler.post(mIndexRunner);
                     break;
                 case ADPLUGDB_DELETE:
-                    mDB.deleteDB();
+                    mDB.delete();
                     break;
                 case ADPLUGDB_LIST:
                     data = msg.getData();
@@ -119,8 +124,19 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
                     name = data.getString(BUNDLE_SONG);
                     mDB.remove(name);
                     break;
+                case ADPLUGDB_RENAME:
+                    data = msg.getData();
+                    String before = data.getString(BUNDLE_BEFORE);
+                    String after = data.getString(BUNDLE_AFTER);
+                    mDB.rename(before, after);
+                    break;
                 case ADPLUGDB_GETCOUNT:
                     mDB.getCount();
+                    break;
+                case ADPLUGDB_SEARCH:
+                    data = msg.getData();
+                    String query = data.getString(BUNDLE_QUERY);
+                    mDB.search(query);
                     break;
                 case ADPLUGDB_ONSONGINFO:
                     data = msg.getData();
@@ -288,8 +304,23 @@ public class AdPlugDbService extends Service implements IAdPlugDb {
     }
 
     @Override
+    public void rename(String before, String after) {
+        Bundle data = new Bundle();
+        data.putString(BUNDLE_BEFORE, before);
+        data.putString(BUNDLE_AFTER, after);
+        sendMessageToAdPlugDb(ADPLUGDB_RENAME, data);
+    }
+
+    @Override
     public void getCount() {
         sendMessageToAdPlugDb(ADPLUGDB_GETCOUNT, null);
+    }
+
+    @Override
+    public void search(String query) {
+        Bundle data = new Bundle();
+        data.putString(BUNDLE_QUERY, query);
+        sendMessageToAdPlugDb(ADPLUGDB_SEARCH, data);
     }
 
     @Override

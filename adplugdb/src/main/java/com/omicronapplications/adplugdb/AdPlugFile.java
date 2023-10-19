@@ -10,6 +10,7 @@ public class AdPlugFile implements Comparator<AdPlugFile>, Comparable<AdPlugFile
     public AdPlugFile() {}
 
     public AdPlugFile(String path, String name, String type, String title, String author, String desc, long length, long songlength, int subsongs, boolean valid, boolean playlist) {
+        this.rowid = -1;
         this.path = path != null ? path : "";
         this.name = name != null ? name : "";
         this.type = type != null ? type : "";
@@ -25,6 +26,7 @@ public class AdPlugFile implements Comparator<AdPlugFile>, Comparable<AdPlugFile
     }
 
     public AdPlugFile(String path, String name) {
+        this.rowid = -1;
         this.path = path;
         this.name = name;
         this.type = "";
@@ -139,6 +141,7 @@ public class AdPlugFile implements Comparator<AdPlugFile>, Comparable<AdPlugFile
         }
     }
 
+    public int rowid;
     public String path;
     public String name;
     public String type;

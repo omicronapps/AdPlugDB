@@ -22,7 +22,7 @@ AdPlugDb is used in [AndPlug](https://play.google.com/store/apps/details?id=com.
 ## Prerequisites
 
 - [Android 4.0.3](https://developer.android.com/about/versions/android-4.0.3) (API Level: 15) or later (`ICE_CREAM_SANDWICH_MR1`)
-- [Android Gradle Plugin](https://developer.android.com/studio/releases/gradle-plugin) 7.0.1) or later (`gradle:7.0.1`)
+- [Android Gradle Plugin](https://developer.android.com/studio/releases/gradle-plugin) 7.2.2) or later (`gradle:7.2.2`)
 
 ## Installation
 
@@ -152,11 +152,26 @@ Remove song from database.
 
 - `song` - full path and name of song
 
+#### rename
+
+```void rename(String before, String after)```
+
+Rename song in database.
+
+- `before` - current full path and name of song
+- `after` - renamed full path and name of song
+
 #### getCount
 
 ```void getCount()```
 
 Get number of entries (songs and folders) in database. Count returned through callback `onGetCount()`.
+
+#### search
+
+```void search(String query);```
+
+Search in database. Result returned through callback `onSearch(List<AdPlugFile> songs)`.
 
 #### onSongInfo
 
@@ -229,6 +244,14 @@ Callback from `AdPlugDb` with number of entries, following request through `getC
 
 - `count` - number of entries (songs and folders) in database
 
+#### onSearch
+
+```void onSearch(List<AdPlugFile> songs)```
+
+Callback from `AdPlugDb` with list of songs, following request through `search()`.
+
+- `songs` - list of songs
+
 ## Example
 
 Implement `IAdPlugDbCallback` callback interface:
@@ -269,6 +292,10 @@ class AdPlugDbCallback implements IAdPlugDbCallback {
     @Override
     public void onGetCount(long count) {
     }
+
+    @Override
+    public onSearch(List<AdPlugFile> songs) {
+    }
 }
 ```
 
@@ -306,7 +333,7 @@ controller.destroy();
 
 ## Credits
 
-Copyright (C) 2020-2021 [Fredrik Claesson](https://github.com/omicronapps)
+Copyright (C) 2020-2023 [Fredrik Claesson](https://www.omicronapplications.com/)
 
 ## Release History
 
@@ -314,7 +341,8 @@ Copyright (C) 2020-2021 [Fredrik Claesson](https://github.com/omicronapps)
 - 1.1.0 Support for quick listings and for hiding invalid files from list
 - 1.2.0 Extended sort options
 - 1.3.0 Added support for retrieving playlists and random shuffle
+- 1.4.0 Add search and rename functions, bug fixes, change to Apache License Version 2.0
 
 ## License
 
-AdPlugDb is licensed under [GNU LESSER GENERAL PUBLIC LICENSE](LICENSE).
+AdPlugDb is licensed under [Apache License Version 2.0](LICENSE).
