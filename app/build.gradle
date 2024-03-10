@@ -7,8 +7,8 @@ android {
         applicationId "com.omicronapplications.adplugdb"
         minSdkVersion 15
         targetSdkVersion 34
-        versionCode 5
-        versionName "1.4"
+        versionCode 6
+        versionName "1.5"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -19,6 +19,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    namespace 'com.omicronapplications.adplugdb'
 }
 
 dependencies {

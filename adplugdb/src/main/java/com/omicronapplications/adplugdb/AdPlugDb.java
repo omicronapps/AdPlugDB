@@ -351,7 +351,7 @@ public class AdPlugDb extends SQLiteOpenHelper {
                 Iterator<AdPlugFile> it = dbFiles.iterator();
                 while (it.hasNext()) {
                     AdPlugFile file = it.next();
-                    if (file != null && !file.valid && !file.dir) {
+                    if (file != null && !file.valid && !file.dir && !file.playlist) {
                         it.remove();
                     }
                 }
