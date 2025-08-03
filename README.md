@@ -22,7 +22,7 @@ AdPlugDb is used in [AndPlug](https://play.google.com/store/apps/details?id=com.
 ## Prerequisites
 
 - [Android 4.0.3](https://developer.android.com/about/versions/android-4.0.3) (API Level: 15) or later (`ICE_CREAM_SANDWICH_MR1`)
-- [Android Gradle Plugin](https://developer.android.com/studio/releases/gradle-plugin) 7.4.2) or later (`gradle:7.4.2`)
+- [Android Gradle Plugin](https://developer.android.com/studio/releases/gradle-plugin) 8.11.1 or later (`gradle:8.11.1`)
 
 ## Installation
 
@@ -333,7 +333,7 @@ controller.destroy();
 
 ## Credits
 
-Copyright (C) 2020-2024 [Fredrik Claesson](https://www.omicronapplications.com/)
+Copyright (C) 2020-2025 [Fredrik Claesson](https://www.omicronapplications.com/)
 
 ## Release History
 
@@ -343,6 +343,7 @@ Copyright (C) 2020-2024 [Fredrik Claesson](https://www.omicronapplications.com/)
 - 1.3.0 Added support for retrieving playlists and random shuffle
 - 1.4.0 Add search and rename functions, bug fixes, change to Apache License Version 2.0
 - 1.5.0 Include playlists when hiding invalid files
+- 1.6.0 Target Android 15 (API level 35)
 
 ## License
 
